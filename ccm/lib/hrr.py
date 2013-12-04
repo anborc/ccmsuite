@@ -23,7 +23,7 @@ class HRR:
     def randomize(self,N=None):
         if N is None: N=len(self.v)
         sd=1.0/N
-        self.v=numpy.random.randn(N)*sd
+        self.v=numpy.random.randn(N)*sd  #why do we need sd
         self.normalize()
     def __add__(self,other):
         return HRR(data=self.v+other.v)
@@ -45,8 +45,23 @@ class HRR:
         else:
             return HRR(data=self.v*other)
     def convolve(self,other):
-        x=ifft(fft(self.v)*fft(other.v)).real
-        return HRR(data=x)
+        z=ifft(fft(self.v)*fft(other.v)).real
+        return HRR(data=z)
+    def convolve2(self, other): # slower than method convolve
+        x = self.v
+        y = other.v
+        self.number=len(self.v)
+        z=[sum([x[k]*y[(i-k+self.number)%self.number] for k in xrange(self.number)]) for i in xrange(self.number)]
+        return HRR(data=z)  
+    def correlate(self,other):
+        z=ifft(ifft(self.v)*fft(other.v)).real*10
+        return HRR(data=z)
+    def correlate2(self,other): # slower than method correlate
+        x = self.v
+        y = other.v
+        self.number=len(self.v)
+        z=[sum([x[k]*y[(i+k)%self.number] for k in xrange(self.number)]) for i in xrange(self.number)] 
+        return HRR(data=z)
     def __rmul__(self,other):
         if isinstance(other,HRR):
             x=ifft(fft(self.v)*fft(other.v)).real
@@ -76,7 +91,6 @@ class HRR:
         for i in range(len(self.v)):
             err+=(self.v[i]-other.v[i])**2
         return err/len(self.v)
-
     def sparcify_probability(self,prob):
         r=numpy.random.random(self.v.shape)
         while numpy.all(r>prob): r=numpy.random.random(self.v.shape)
